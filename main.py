@@ -8,6 +8,7 @@ from utils import (
 )
 from config import DATA_CONFIG, MODEL_CONFIG, TRAINING_CONFIG, OUTPUT_CONFIG
 from torch.utils.data import DataLoader, TensorDataset
+import datetime
 
 def main():
     # Set random seed for reproducibility
@@ -82,11 +83,24 @@ def main():
     )
     
     # Plot training losses and correlations
-    trainer.plot_losses(save_path=OUTPUT_CONFIG['plot_save_path'])
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    trainer.plot_losses(save_path=f"{timestamp}_training_plot.png")
     
     # Evaluate model
     print("\nEvaluating model on test set...")
-    correlation, predictions, targets = evaluate_model(model, test_loader, device)
+    test_result_path = f"{timestamp}_" + OUTPUT_CONFIG['test_save_path']
+    model_name = model.__class__.__name__
+    save_dir = './plots/'  # Ensure this directory exists or create it
+
+    correlation, predictions, targets = evaluate_model(
+        model, 
+        test_loader, 
+        device, 
+        test_result_path, 
+        model_name, 
+        timestamp, 
+        save_dir
+    )
     print(f"Test set correlation: {correlation:.4f}")
     
     # Calculate and print metrics
@@ -97,10 +111,10 @@ def main():
     plot_predictions(predictions, targets)
     
     # Save predictions
-    save_predictions(predictions, targets, OUTPUT_CONFIG['predictions_save_path'])
+    save_predictions(predictions, targets, test_result_path)
     
     # Save model
-    save_model(model, OUTPUT_CONFIG['model_save_path'])
+    save_model(model, f"{timestamp}_" + OUTPUT_CONFIG['model_save_path'])
 
 if __name__ == "__main__":
     main() 

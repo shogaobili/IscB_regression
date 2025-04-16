@@ -5,6 +5,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
+from utils import plot_test_results
+import datetime
 
 class ModelTrainer:
     def __init__(self, model, device, learning_rate=0.001, lr_scheduler_params=None):
@@ -155,8 +158,8 @@ class ModelTrainer:
         ax1.tick_params(axis='y', labelcolor=color1)
         
         # Create second y-axis for correlation
-        ax2 = ax1.twinx()
         color3 = 'tab:green'
+        ax2 = ax1.twinx()
         ax2.set_ylabel('Pearson Correlation', color=color3)
         line3 = ax2.plot(self.val_correlations, label='Validation Correlation', color=color3)
         ax2.tick_params(axis='y', labelcolor=color3)
@@ -169,11 +172,16 @@ class ModelTrainer:
         plt.title('Training Progress')
         plt.tight_layout()
         
+        # Ensure the plots directory exists
+        os.makedirs('./plots', exist_ok=True)
+        
+        # Add timestamp to the filename
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         if save_path:
-            plt.savefig(save_path)
+            plt.savefig(os.path.join('./plots', f"{timestamp}_" + save_path))
         plt.close()
 
-def evaluate_model(model, test_loader, device):
+def evaluate_model(model, test_loader, device, test_result_path, model_name, timestamp, save_dir):
     model.eval()
     all_predictions = []
     all_targets = []
@@ -191,5 +199,12 @@ def evaluate_model(model, test_loader, device):
     all_predictions = np.array(all_predictions)
     all_targets = np.array(all_targets)
     correlation = np.corrcoef(all_predictions.flatten(), all_targets.flatten())[0, 1]
+    
+    # Save predictions and actuals to CSV
+    test_results = pd.DataFrame({'Actual': all_targets.flatten(), 'Predicted': all_predictions.flatten()})
+    test_results.to_csv(test_result_path, index=False)
+    
+    # Plot results
+    plot_test_results(test_result_path, model, correlation, timestamp, save_dir)
     
     return correlation, all_predictions, all_targets 

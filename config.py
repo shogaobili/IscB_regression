@@ -5,7 +5,7 @@ Contains all adjustable parameters for data processing, model architecture, and 
 
 # Data parameters
 DATA_CONFIG = {
-    'file_path': 'D:/01IscBML/cursor/dataset/',
+    'file_path': './dataset/',
     'batch_size': 32,
     'train_ratio': 0.8,
     'val_ratio': 0.1,
@@ -14,7 +14,7 @@ DATA_CONFIG = {
     'val_dataset_path': 'A_to_G_S18_Val_del1700_10%.xlsx',
     'test_dataset_path': 'test_del_keep1700.xlsx',
     # Use relative path for prediction data to ensure portability
-    'predict_dataset_path': 'pred.xlsx',  # Same as test file for now, can be changed to a different file for actual predictions
+    'predict_dataset_path': 'PCSK9.xlsx',  # Same as test file for now, can be changed to a different file for actual predictions
 }
 
 # Model architecture parameters
@@ -49,6 +49,7 @@ EVALUATION_CONFIG = {
 # Output parameters
 OUTPUT_CONFIG = {
     'model_save_path': 'model.pth',
-    'predictions_save_path': 'predictions.csv',
+    'model_predict_path': 'LocalCNN.pth',
+    'test_save_path': 'test_result.csv',
     'plot_save_path': 'training_plot.png',
 } 

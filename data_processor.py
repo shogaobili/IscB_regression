@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader
 
 class FeatureProcessor:
-    def __init__(self, file_path='D:/01IscBML/', file_name=''):
+    def __init__(self, file_path='./', file_name=''):
         self.category_map = {'A': 0, 'T': 1, 'C': 2, 'G': 3}
         self.data_path = file_path + file_name
         self.df, self.index_tensor = self.load_data(self.data_path)
