@@ -24,72 +24,79 @@ class TAMEnhancer(nn.Module):
         return tam_features
 
 class LocalCNN(nn.Module):
-    def __init__(self, sequence_length, tam_one_hot_dim=4, tam_embedding_dim=4, kernel_size=21,
-                 conv_channels=[32, 64, 64, 64], fc_dims=[64, 32, 1], dropout_rate=0.5, leaky_relu_neg_slope=0.1):
+    def __init__(self, sequence_length, tam_one_hot_dim=4, tam_embedding_dim=4, kernel_size=21):
         super(LocalCNN, self).__init__()
 
+        # TAMEnhancer
         self.tam_enhancer = TAMEnhancer(one_hot_dim=tam_one_hot_dim, embedding_dim=tam_embedding_dim, feature_dim=6)
         
         # Convolutional layers
-        self.conv_layers = nn.ModuleList()
-        self.bn_layers = nn.ModuleList()
+        self.conv1 = nn.Conv1d(in_channels=6, out_channels=32, kernel_size=kernel_size, padding=kernel_size // 2)
+        self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=kernel_size, padding=kernel_size // 2)
+        self.conv3 = nn.Conv1d(in_channels=64, out_channels=64, kernel_size=kernel_size, padding=kernel_size // 2)
+        self.conv4 = nn.Conv1d(in_channels=64, out_channels=64, kernel_size=kernel_size, padding=kernel_size // 2)
         
-        in_channels = 6  # Initial input channels (sequence + TAM features)
-        for out_channels in conv_channels:
-            self.conv_layers.append(nn.Conv1d(in_channels, out_channels, kernel_size, padding=kernel_size // 2))
-            self.bn_layers.append(nn.BatchNorm1d(out_channels))
-            in_channels = out_channels
+        # Batch Normalization
+        self.bn1 = nn.BatchNorm1d(32)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.bn3 = nn.BatchNorm1d(64)
+        self.bn4 = nn.BatchNorm1d(64)   
         
         # Activation functions
-        self.leaky_relu = nn.LeakyReLU(leaky_relu_neg_slope)
+        self.leaky_relu = nn.LeakyReLU(0.1)
         self.hardtanh = nn.Hardtanh(min_val=0, max_val=1)
-        self.dropout = nn.Dropout(dropout_rate)
+        self.dropout = nn.Dropout(0.5)
         
         # Global pooling
         self.global_pool = nn.AdaptiveAvgPool1d(1)
         
         # Fully connected layers
-        self.fc_layers = nn.ModuleList()
-        for i in range(len(fc_dims) - 1):
-            self.fc_layers.append(nn.Linear(fc_dims[i], fc_dims[i+1]))
-        
-        self.sequence_length = sequence_length
+        self.fc1 = nn.Linear(64, 256)
+        self.fc2 = nn.Linear(256, 32)
+        self.fc3 = nn.Linear(32, 1)
 
-    def forward(self, x):
-        batch_size = x.size(0)
+    def forward(self, x, tam_indices):
+        # Enhance TAM features
+        tam_features = self.tam_enhancer(tam_indices)
         
-        # Split input into sequence and TAM features
-        sequence_features = x[:, :, :4]  # First 4 channels are sequence features
-        tam_features = x[:, :, 4:6]      # Last 2 channels are TAM features
+        # Concatenate TAM features with the input sequence
+        x = torch.cat((x, tam_features), dim=1)
+
+        # Input permutation for Conv1d
+        x = x.permute(0, 2, 1)
         
-        # Process TAM features
-        tam_enhanced = self.tam_enhancer(tam_features)
+        # Convolutional block 1
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.leaky_relu(x)
         
-        # Combine sequence and enhanced TAM features
-        combined = torch.cat([sequence_features, tam_enhanced], dim=1)
+        # Convolutional block 2
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.leaky_relu(x)
         
-        # Convolutional layers
-        for conv, bn in zip(self.conv_layers, self.bn_layers):
-            x = conv(combined)
-            x = bn(x)
-            x = self.leaky_relu(x)
-            x = self.dropout(x)
-            combined = x
+        # Convolutional block 3
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x = self.leaky_relu(x)
         
-        # Global pooling
-        x = self.global_pool(x)
-        x = x.view(batch_size, -1)
+        # Convolutional block 4
+        x = self.conv4(x)
+        x = self.bn4(x)
+        x = self.leaky_relu(x)
+        
+        # Global average pooling
+        x = self.global_pool(x).squeeze(-1)
         
         # Fully connected layers
-        for fc in self.fc_layers[:-1]:
-            x = fc(x)
-            x = self.leaky_relu(x)
-            x = self.dropout(x)
+        x = self.fc1(x)
+        x = self.leaky_relu(x)
+        x = self.dropout(x)
         
-        # Final layer
-        x = self.fc_layers[-1](x)
+        x = self.fc2(x)
+        x = self.leaky_relu(x)
         
-        # Final activation
+        x = self.fc3(x)
         x = self.hardtanh(x)
-        
+
         return x 

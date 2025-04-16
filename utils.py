@@ -1,60 +1,53 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import pandas as pd
 import os
 
-def save_predictions(predictions, targets, output_file):
+def save_predictions(predictions, targets, save_path):
     """Save predictions and targets to a CSV file"""
     # Create directory if it doesn't exist
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    directory = os.path.dirname(save_path)
+    if directory:  # Only create directory if path contains a directory
+        os.makedirs(directory, exist_ok=True)
     
     df = pd.DataFrame({
         'Predictions': predictions.flatten(),
         'Targets': targets.flatten()
     })
-    df.to_csv(output_file, index=False)
-    print(f"Predictions saved to {output_file}")
+    df.to_csv(save_path, index=False)
+    print(f"Predictions saved to {save_path}")
 
-def plot_predictions(predictions, targets, title="Predictions vs Targets", figsize=(10, 6), save_path=None):
+def plot_predictions(predictions, targets, save_path=None):
     """Plot predictions against targets"""
-    plt.figure(figsize=figsize)
+    plt.figure(figsize=(10, 6))
     plt.scatter(targets, predictions, alpha=0.5)
     plt.plot([0, 1], [0, 1], 'r--', lw=2)
-    plt.xlabel('Target Values')
-    plt.ylabel('Predicted Values')
-    plt.title(title)
-    plt.grid(True)
+    plt.xlabel('True Values')
+    plt.ylabel('Predictions')
+    plt.title('Prediction vs True Value')
     
     if save_path:
         # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        directory = os.path.dirname(save_path)
+        if directory:  # Only create directory if path contains a directory
+            os.makedirs(directory, exist_ok=True)
         plt.savefig(save_path)
         print(f"Prediction plot saved to {save_path}")
     
-    plt.show()
+    plt.close()
 
-def calculate_metrics(predictions, targets, metrics=None):
+def calculate_metrics(predictions, targets):
     """Calculate various metrics for model evaluation"""
-    if metrics is None:
-        metrics = ['R2 Score', 'MSE', 'RMSE', 'MAE']
-    
-    results = {}
-    
-    if 'R2 Score' in metrics:
-        results['R2 Score'] = r2_score(targets, predictions)
-    
-    if 'MSE' in metrics:
-        results['MSE'] = np.mean((predictions - targets) ** 2)
-    
-    if 'RMSE' in metrics:
-        results['RMSE'] = np.sqrt(np.mean((predictions - targets) ** 2))
-    
-    if 'MAE' in metrics:
-        results['MAE'] = np.mean(np.abs(predictions - targets))
-    
-    return results
+    metrics = {
+        'R2 Score': r2_score(targets, predictions),
+        'MSE': mean_squared_error(targets, predictions),
+        'RMSE': np.sqrt(mean_squared_error(targets, predictions)),
+        'MAE': mean_absolute_error(targets, predictions),
+        'Pearson Correlation': np.corrcoef(predictions.flatten(), targets.flatten())[0, 1]
+    }
+    return metrics
 
 def print_metrics(metrics):
     """Print metrics in a formatted way"""
@@ -63,13 +56,15 @@ def print_metrics(metrics):
     for metric_name, value in metrics.items():
         print(f"{metric_name}: {value:.4f}")
 
-def save_model(model, path):
+def save_model(model, save_path):
     """Save model state dict"""
     # Create directory if it doesn't exist
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    directory = os.path.dirname(save_path)
+    if directory:  # Only create directory if path contains a directory
+        os.makedirs(directory, exist_ok=True)
     
-    torch.save(model.state_dict(), path)
-    print(f"Model saved to {path}")
+    torch.save(model.state_dict(), save_path)
+    print(f"Model saved to {save_path}")
 
 def load_model(model, path):
     """Load model state dict"""

@@ -1,9 +1,9 @@
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import TensorDataset, DataLoader
 
 class FeatureProcessor:
-    def __init__(self, file_path='', file_name=''):
+    def __init__(self, file_path='D:/01IscBML/', file_name=''):
         self.category_map = {'A': 0, 'T': 1, 'C': 2, 'G': 3}
         self.data_path = file_path + file_name
         self.df, self.index_tensor = self.load_data(self.data_path)
@@ -15,7 +15,7 @@ class FeatureProcessor:
 
     def load_data(self, data_path):
         df = pd.read_excel(data_path)
-        index_tensor = (df['A_position_counted_from_5_end_of_gRNA'] + 20).astype(int) - 1
+        index_tensor = (df['A_position_counted_from_5_end_of_gRNA'] + 20).astype(int) - 1  # Warning: 0-indexed
         return df, index_tensor
 
     def sequence_to_one_hot(self, sequence, categories="ATCG"):
@@ -58,32 +58,4 @@ class FeatureProcessor:
     
     def label(self):
         labels_tensor = torch.tensor(self.df['a-to-g(%)'].values/100, dtype=torch.float32).unsqueeze(1)
-        return labels_tensor
-
-class IscBDataset(Dataset):
-    def __init__(self, features, labels):
-        self.features = features
-        self.labels = labels
-
-    def __len__(self):
-        return len(self.labels)
-
-    def __getitem__(self, idx):
-        return self.features[idx], self.labels[idx]
-
-def create_data_loaders(features, labels, batch_size=64, train_ratio=0.8, val_ratio=0.1):
-    dataset = IscBDataset(features, labels)
-    total_size = len(dataset)
-    train_size = int(train_ratio * total_size)
-    val_size = int(val_ratio * total_size)
-    test_size = total_size - train_size - val_size
-
-    train_dataset, val_dataset, test_dataset = random_split(
-        dataset, [train_size, val_size, test_size]
-    )
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size)
-
-    return train_loader, val_loader, test_loader 
+        return labels_tensor 
