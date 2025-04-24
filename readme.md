@@ -4,9 +4,12 @@ Before using, please make sure to install the dependencies.
 
 You can use the command to install all the requirements.
 
-conda create --name Tnpb 
-conda activate Tnpb
+conda create --name IscB_regression
+
+conda activate IscB_regression
+
 conda install -c anaconda python=3.6
+
 pip install -r requirements.txt
 
 
